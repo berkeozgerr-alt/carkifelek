@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>İnteraktif Çarkıfelek</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            overflow-x: hidden;
+        }
+
+        /* Top Header & Controls (Senin Orijinal Tasarımın) */
+        header {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 12px 25px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+
+        .title-box h1 { font-size: 1.4rem; color: #38bdf8; letter-spacing: 0.5px; }
+        .title-box p { font-size: 0.8rem; color: #94a3b8; }
+
+        .header-controls { display: flex; gap: 15px; align-items: center; }
+
+        select {
+            background: #334155; color: #f8fafc; border: 1px solid #475569;
+            padding: 8px 14px; border-radius: 8px; font-size: 0.95rem; outline: none; cursor: pointer; transition: all 0.2s;
+        }
+        select:hover { border-color: #38bdf8; }
+
+        .score-board {
+            background: #0284c7; padding: 8px 18px; border-radius: 20px;
+            font-weight: bold; font-size: 1rem; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+        }
+
+        /* YENİ: Ana Layout (Yan Menü ve İçerik Alanı) */
+        .main-layout {
+            display: flex;
+            width: 100%;
+            max-width: 1200px;
+            flex: 1;
+            gap: 20px;
+        }
+
+        /* YENİ: Yan Menü (Sidebar) */
+        .sidebar {
+            width: 250px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .sidebar h3 {
+            font-size: 1rem; color: #94a3b8; margin-bottom: 10px;
+            text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;
+        }
+
+        .mode-btn {
+            background: rgba(15, 23, 42, 0.5); border: 1px solid rgba(255,255,255,0.1);
+            color: #fff; padding: 14px; border-radius: 10px; font-size: 1.05rem; font-weight: bold;
+            cursor: pointer; text-align: left; transition: 0.3s;
+        }
+        .mode-btn:hover { background: rgba(56, 189, 248, 0.1); }
+        .mode-btn.active { background: #0284c7; border-color: #38bdf8; box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4); }
+
+        /* YENİ: Oyun Ekranı */
+        .game-screen {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            background: rgba(0, 0, 0, 0.15);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            min-height: 550px;
+            transition: transform 1s cubic-bezier(0.25, 1, 0.5, 1); /* Zoom efekti için geçiş eklendi */
+            transform-origin: center bottom; /* Zoom merkezini alta aldık */
+        }
+        
+        /* Zoom Class'ı eklendiğinde ekran yakınlaşır */
+        .game-screen.zoomed {
+            transform: scale(2.5) translateY(10%); 
+        }
+
+        .game-mode { display: none; width: 100%; height: 100%; justify-content: center; align-items: center; flex-direction: column; }
+        .game-mode.active { display: flex; animation: fadeIn 0.4s; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Senin Çarkıfelek CSS'in */
+        .wheel-wrapper { position: relative; width: 500px; height: 500px; display: flex; justify-content: center; align-items: center; margin: 10px 0; }
+        .pointer {
+            position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0;
+            border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 38px solid #ef4444; z-index: 10;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.5));
+        }
+        canvas { border-radius: 50%; box-shadow: 0 0 35px rgba(0, 0, 0, 0.6), 0 0 0 8px rgba(255, 255, 255, 0.1); }
+        .spin-btn {
+            position: absolute; width: 90px; height: 90px; background: radial-gradient(circle, #f59e0b 0%, #d97706 100%);
+            border: 4px solid #ffffff; border-radius: 50%; color: #ffffff; font-weight: 900; font-size: 1.1rem;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer;
+            box-shadow: 0 0 20px rgba(217, 119, 6, 0.8), inset 0 2px 5px rgba(255,255,255,0.5); z-index: 5; transition: transform 0.2s;
+        }
+        .spin-btn:active { transform: scale(0.95); }
+        .spin-btn span { font-size: 0.65rem; font-weight: normal; opacity: 0.9; }
+
+        /* YENİ: Tren Animasyonu CSS'i */
+        .train-world { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; }
+        .railway { width: 100%; height: 25px; background: #334155; position: absolute; bottom: 60px; border-top: 3px solid #94a3b8; border-bottom: 3px solid #94a3b8; z-index: 2; }
+        .tunnel { position: absolute; right: -40px; bottom: 62px; font-size: 11rem; z-index: 10; line-height: 0.8; text-shadow: -10px 0 20px rgba(0,0,0,0.8); }
+        
+        .train {
+            position: absolute; left: -250px; bottom: 70px; font-size: 6rem; z-index: 5;
+            transition: transform 3.5s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+        .train.go { transform: translateX(1200px); }
+        
+        .box-drop {
+            position: absolute; left: 50%; top: -250px; transform: translateX(-50%); font-size: 4rem; cursor: pointer;
+            transition: top 0.6s cubic-bezier(0.5, 1.5, 0.8, 1), transform 0.3s, opacity 0.3s; /* Transition eklendi */
+            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.6)); opacity: 0; z-index: 15; text-align: center;
+        }
+        /* Kutu Düşme Yeri Rayların Üstü Oldu */
+        .box-drop.falling { top: calc(100% - 150px); opacity: 1; } 
+        .box-drop:hover { transform: translateX(-50%) scale(1.1); }
+        
+        /* Kutu Patlama Animasyonu */
+        .box-drop.opening {
+            transform: translateX(-50%) scale(3); /* Büyüyerek patlama */
+            opacity: 0; /* Görünmez olma */
+            transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.8s ease-out;
+            pointer-events: none; /* Tıklanmayı kapat */
+        }
+
+        .start-train-btn {
+            background: #8b5cf6; color: white; border: none; padding: 15px 35px; border-radius: 12px; font-size: 1.2rem;
+            font-weight: bold; cursor: pointer; margin-bottom: 250px; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.5); z-index: 20; position: relative;
+        }
+        
+        /* Ekranı Parlatma Efekti (Beyaz Flaş) */
+        .flash-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: white; opacity: 0; z-index: 50; pointer-events: none;
+            transition: opacity 0.5s ease-out;
+        }
+        .flash-overlay.flash { opacity: 0.8; }
+
+        /* YENİ: Gizemli Kutu CSS'i */
+        .mystery-box { font-size: 8rem; cursor: pointer; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5)); transition: transform 0.2s; }
+        .mystery-box:hover { transform: scale(1.05); }
+        .mystery-box.shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake { 10%, 90% { transform: translate3d(-5px, 0, 0); } 20%, 80% { transform: translate3d(5px, 0, 0); } 30%, 50%, 70% { transform: translate3d(-10px, 0, 0) rotate(-5deg); } 40%, 60% { transform: translate3d(10px, 0, 0) rotate(5deg); } }
+
+        /* Senin Orijinal Modal (Soru) CSS'in */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 100; opacity: 0; visibility: hidden; transition: 0.5s ease; }
+        .modal-overlay.active { opacity: 1; visibility: visible; transition-delay: 0.3s; /* Sorunun gelmesini biraz geciktiriyoruz */ } 
+        .modal-card { background: #1e293b; border: 2px solid #38bdf8; border-radius: 24px; padding: 35px; width: 90%; max-width: 650px; text-align: center; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); transform: scale(0.3); transition: 0.7s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .modal-overlay.active .modal-card { transform: scale(1); }
+        .modal-header { display: inline-block; background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 6px 16px; border-radius: 20px; font-size: 0.9rem; font-weight: 600; margin-bottom: 12px; }
+        .modal-title { font-size: 2.2rem; color: #f8fafc; margin-bottom: 5px; font-weight: 800; }
+        .modal-points { font-size: 1.2rem; color: #fbbf24; font-weight: 700; margin-bottom: 20px; }
+        .task-box { background: #0f172a; border-radius: 16px; padding: 22px; font-size: 1.25rem; color: #e2e8f0; line-height: 1.6; margin-bottom: 25px; border: 1px dashed rgba(255, 255, 255, 0.15); display: flex; align-items: center; justify-content: center; min-height: 100px; }
+        .modal-actions { display: flex; gap: 15px; justify-content: center; }
+        .btn { padding: 12px 28px; border-radius: 12px; font-size: 1rem; font-weight: bold; cursor: pointer; border: none; color: white; display: flex; align-items: center; gap: 8px; }
+        .btn-remove { background: #ef4444; } .btn-spin { background: #10b981; }
+
+        footer { font-size: 0.8rem; color: #64748b; margin-top: 10px; text-align: center; width: 100%; }
+
+        @media (max-width: 768px) {
+            .main-layout { flex-direction: column; }
+            .sidebar { width: 100%; flex-direction: row; flex-wrap: wrap; justify-content: center; }
+            .sidebar h3 { width: 100%; text-align: center; }
+            .wheel-wrapper { width: 320px; height: 320px; }
+            header { flex-direction: column; gap: 10px; text-align: center; }
+            .box-drop.falling { top: calc(100% - 130px); }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="title-box">
+            <h1>⚙️ İnteraktif Çarkıfelek</h1>
+            <p>Eğlenceli Soru ve Etkinlik Platformu</p>
+        </div>
+        <div class="header-controls">
+            <select id="presetSelect" onchange="changePreset()">
+                <option value="degerler">🌙 Değerler Eğitimi</option>
+                <option value="turkce">📚 Türkçe / Edebiyat</option>
+                <option value="mat">📐 Matematik</option>
+                <option value="fen">🔬 Fen Bilimleri</option>
+                <option value="sosyal">🌍 Sosyal Bilgiler</option>
+                <option value="ingilizce">🇬🇧 İngilizce</option>
+                <option value="bilisim">💻 Bilişim & Teknoloji</option>
+                <option value="sanat">🎨 Görsel Sanatlar & Müzik</option>
+                <option value="kultur">🏆 Genel Kültür</option>
+            </select>
+            <div class="score-board">Puan: <span id="totalScore">0</span></div>
+        </div>
+    </header>
+
+    <div class="main-layout">
+        <!-- SOL MENÜ -->
+        <div class="sidebar">
+            <h3>Oyun Modları</h3>
+            <button class="mode-btn active" onclick="setMode('wheel', this)">🎡 Çarkıfelek</button>
+            <button class="mode-btn" onclick="setMode('train', this)">🚂 Tren Macerası</button>
+            <button class="mode-btn" onclick="setMode('box', this)">🎁 Gizemli Kutu</button>
+        </div>
+
+        <!-- OYUN ALANI -->
+        <div class="game-screen" id="mainGameScreen">
+            <!-- Ekran Parlaması İçin -->
+            <div class="flash-overlay" id="flashScreen"></div>
+
+            <!-- Mod 1: Orijinal Çarkıfelek -->
+            <div id="mode-wheel" class="game-mode active">
+                <div class="wheel-wrapper">
+                    <div class="pointer"></div>
+                    <canvas id="wheelCanvas" width="500" height="500"></canvas>
+                    <button class="spin-btn" id="spinBtn" onclick="spin()">
+                        ÇEVİR<span>Tıkla</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Mod 2: Tren Macerası -->
+            <div id="mode-train" class="game-mode">
+                <button class="start-train-btn" id="trainBtn" onclick="startTrain()">Treni Yola Çıkar</button>
+                <div class="box-drop" id="trainBox" onclick="openTrainBoxWithAnim()">📦<br><span style="font-size: 1.2rem; color:#fff;">Soru Kutusu</span></div>
+                <div class="train-world">
+                    <div class="tunnel">⛰️⬛</div>
+                    <div class="railway"></div>
+                    <div class="train" id="trainIcon">🚂🚋🚋</div>
+                </div>
+            </div>
+
+            <!-- Mod 3: Gizemli Kutu -->
+            <div id="mode-box" class="game-mode">
+                <h2 style="color: #cbd5e1; margin-bottom: 20px;">Sıradaki Konu Hangisi Olacak?</h2>
+                <div class="mystery-box" id="mBox" onclick="shakeBox()">🎁</div>
+                <p style="color: #94a3b8; margin-top: 10px;">Açmak için kutuya tıkla</p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Orijinal Modal Tasarımın -->
+    <div class="modal-overlay" id="resultModal">
+        <div class="modal-card">
+            <div class="modal-header" id="modalCategoryTag">Kategori</div>
+            <div class="modal-title" id="modalTitle">Adalet</div>
+            <div class="modal-points" id="modalPoints">+10 Puan</div>
+            <div class="task-box" id="modalTask">Görev yükleniyor...</div>
+            <div class="modal-actions">
+                <button class="btn btn-remove" onclick="removeCurrentSlice()">🗑️ Kaldır (Sil)</button>
+                <button class="btn btn-spin" onclick="closeModal()">🔄 Tamam (Devam Et)</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        Wordwall Mantığında Tasarlanmıştır • Her Kategori 50+ Özel Görev İçerir
+    </footer>
+
+    <script>
+        // --- SESLER ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            if (type === 'tick') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(600, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.05);
+            } else if (type === 'drop') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(200, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            } else if (type === 'win') {
+                [400, 500, 600, 800].forEach((f, i) => {
+                    const o = audioCtx.createOscillator(); const g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination);
+                    o.frequency.value = f; g.gain.setValueAtTime(0.1, audioCtx.currentTime + i*0.1); g.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + i*0.1+0.2);
+                    o.start(audioCtx.currentTime + i*0.1); o.stop(audioCtx.currentTime + i*0.1+0.2);
+                });
+            } else if (type === 'boom') { // Yeni Patlama Sesi
+                 osc.type = 'square'; osc.frequency.setValueAtTime(100, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.8);
+                 gain.gain.setValueAtTime(0.4, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+                 osc.start(); osc.stop(audioCtx.currentTime + 0.8);
+            }
+        }
+
+        // --- VERİTABANI VE SORU ÜRETİCİ ---
+        function generate50Tasks(categoryName, presetType) {
+            const tasks = [];
+            for (let i = 1; i <= 50; i++) {
+                if (presetType === 'degerler') tasks.push(`[${categoryName} - Görev ${i}]: "${categoryName}" değerini uyguladığın ${i}. somut örneği paylaş.`);
+                else if (presetType === 'fen') tasks.push(`[${categoryName} - Soru ${i}]: "${categoryName}" konusuyla ilgili günlük yaşamdan bir örnek ver.`);
+                else if (presetType === 'mat') tasks.push(`[${categoryName} - Soru ${i}]: "${categoryName}" kullanılarak çözülebilecek ${i}. bir problem uydur.`);
+                else if (presetType === 'turkce') tasks.push(`[${categoryName} - Görev ${i}]: İçinde "${categoryName}" kuralları olan ${i}. yaratıcı cümleni kur.`);
+                else if (presetType === 'sosyal') tasks.push(`[${categoryName} - Soru ${i}]: "${categoryName}" konusunun günümüz dünyasına ${i}. etkisini anlat.`);
+                else if (presetType === 'ingilizce') tasks.push(`[${categoryName} - Task ${i}]: Make a sentence using "${categoryName}" rules.`);
+                else if (presetType === 'sanat') tasks.push(`[${categoryName} - Görev ${i}]: "${categoryName}" dendiğinde aklına gelen sanat eserini anlat.`);
+                else if (presetType === 'kultur') tasks.push(`[${categoryName} - Soru ${i}]: "${categoryName}" alanında duyduğun ilginç bilgiyi paylaş.`);
+                else tasks.push(`[${categoryName} - Görev ${i}]: "${categoryName}" kavramını teknolojiden anlamayan birine nasıl anlatırsın?`);
+            }
+            return tasks;
+        }
+
+        const rawPresets = {
+            degerler: [{ name: "Adalet", points: 10 }, { name: "Sabır", points: 5 }, { name: "Dürüstlük", points: 15 }, { name: "Yardımseverlik", points: 10 }, { name: "Saygı", points: 5 }, { name: "Sevgi", points: 10 }, { name: "Sorumluluk", points: 20 }, { name: "Hoşgörü", points: 5 }, { name: "Vatanseverlik", points: 15 }, { name: "Alçakgönüllülük", points: 10 }, { name: "Cömertlik", points: 10 }, { name: "Merhamet", points: 15 }, { name: "Güven", points: 5 }, { name: "Empati", points: 10 }, { name: "Çalışkanlık", points: 15 }, { name: "Vefa", points: 10 }, { name: "Sadakat", points: 10 }, { name: "Edep", points: 20 }],
+            turkce: [{ name: "Fiilimsiler", points: 15 }, { name: "Cümle Ögeleri", points: 20 }, { name: "Noktalama", points: 10 }, { name: "Yazım Kuralları", points: 10 }, { name: "Paragraf", points: 5 }, { name: "Anlam", points: 5 }, { name: "Atasözleri", points: 10 }, { name: "Deyimler", points: 10 }, { name: "Ses Olayları", points: 15 }, { name: "İsimler", points: 5 }, { name: "Sıfatlar", points: 10 }, { name: "Zamirler", points: 10 }, { name: "Zarflar", points: 15 }, { name: "Edat & Bağlaç", points: 10 }, { name: "Şiir", points: 20 }, { name: "Sanatlar", points: 15 }],
+            mat: [{ name: "Çarpanlar", points: 15 }, { name: "Üslü İfadeler", points: 10 }, { name: "Kareköklü", points: 15 }, { name: "Veri Analizi", points: 5 }, { name: "Olasılık", points: 10 }, { name: "Cebirsel", points: 20 }, { name: "Denklemler", points: 15 }, { name: "Eşitsizlikler", points: 10 }, { name: "Üçgenler", points: 15 }, { name: "Benzerlik", points: 10 }, { name: "Dönüşüm", points: 5 }, { name: "Cisimler", points: 15 }, { name: "Orantı", points: 5 }, { name: "Yüzdeler", points: 10 }, { name: "Rasyonel", points: 10 }, { name: "Tam Sayılar", points: 5 }],
+            fen: [{ name: "Hücre", points: 10 }, { name: "Kuvvet", points: 15 }, { name: "Madde", points: 5 }, { name: "Işık & Ses", points: 10 }, { name: "DNA", points: 20 }, { name: "Periyodik", points: 15 }, { name: "Makineler", points: 10 }, { name: "Elektrik", points: 10 }, { name: "Asit/Baz", points: 15 }, { name: "Sistemler", points: 5 }, { name: "Ekosistem", points: 10 }, { name: "Basınç", points: 15 }, { name: "Isı", points: 10 }, { name: "Güneş Sis.", points: 5 }, { name: "Atom", points: 10 }],
+            sosyal: [{ name: "İlk Türkler", points: 10 }, { name: "Osmanlı", points: 15 }, { name: "İnkılap", points: 20 }, { name: "İklimler", points: 5 }, { name: "Yeryüzü", points: 10 }, { name: "Nüfus", points: 5 }, { name: "Yönetim", points: 10 }, { name: "İnsan Hakları", points: 15 }, { name: "Sorunlar", points: 20 }, { name: "Ekonomi", points: 10 }, { name: "Demokrasi", points: 15 }, { name: "Milli Müc.", points: 20 }, { name: "Afetler", points: 5 }, { name: "Harita", points: 10 }],
+            ingilizce: [{ name: "Present Simple", points: 10 }, { name: "Continuous", points: 15 }, { name: "Past Tense", points: 20 }, { name: "Future", points: 10 }, { name: "Modals", points: 15 }, { name: "Pronouns", points: 5 }, { name: "Adjectives", points: 10 }, { name: "Adverbs", points: 10 }, { name: "Vocabulary", points: 15 }, { name: "Speaking", points: 20 }, { name: "Hobbies", points: 5 }, { name: "Animals", points: 10 }],
+            bilisim: [{ name: "Algoritma", points: 15 }, { name: "Yapay Zeka", points: 20 }, { name: "Siber Güvenlik", points: 15 }, { name: "Donanım", points: 5 }, { name: "Yazılım", points: 10 }, { name: "Ağ", points: 10 }, { name: "Veri Tabanı", points: 15 }, { name: "Robotik", points: 20 }, { name: "3D", points: 10 }, { name: "Web", points: 10 }, { name: "Bulut", points: 10 }, { name: "Python", points: 15 }],
+            sanat: [{ name: "Renkler", points: 10 }, { name: "Perspektif", points: 15 }, { name: "Rönesans", points: 20 }, { name: "Notalar", points: 5 }, { name: "Klasik Müzik", points: 15 }, { name: "Mimari", points: 15 }, { name: "Fotoğraf", points: 10 }, { name: "Bestekarlar", points: 15 }, { name: "Sinema", points: 10 }],
+            kultur: [{ name: "Uzay", points: 15 }, { name: "Bilim İnsanları", points: 20 }, { name: "İcatlar", points: 10 }, { name: "Keşifler", points: 15 }, { name: "Mitoloji", points: 20 }, { name: "Harikalar", points: 15 }, { name: "Felsefe", points: 20 }, { name: "Nobel", points: 15 }, { name: "Spor", points: 10 }]
+        };
+
+        let activeSlices = []; let totalScore = 0; let selectedSliceIndex = -1;
+        const sliceColors = ["#ef4444", "#f97316", "#f59e0b", "#eab308", "#84cc16", "#22c55e", "#10b981", "#14b8a6", "#06b6d4", "#0ea5e9", "#3b82f6", "#6366f1", "#8b5cf6", "#a855f7", "#d946ef", "#ec4899", "#f43f5e", "#64748b"];
+
+        function changePreset() {
+            const presetKey = document.getElementById("presetSelect").value;
+            activeSlices = rawPresets[presetKey].map((item, idx) => ({
+                name: item.name, points: item.points, color: sliceColors[idx % sliceColors.length], tasks: generate50Tasks(item.name, presetKey)
+            }));
+            drawWheel();
+        }
+
+        // --- SOL MENÜ GEÇİŞ ---
+        function setMode(modeId, btn) {
+            document.querySelectorAll('.game-mode').forEach(el => el.classList.remove('active'));
+            document.getElementById('mode-' + modeId).classList.add('active');
+            document.querySelectorAll('.mode-btn').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        // --- 1. ÇARKIFELEK İŞLEMLERİ ---
+        const canvas = document.getElementById("wheelCanvas"); const ctx = canvas.getContext("2d"); const radius = canvas.width / 2;
+        let currentAngle = 0; let isSpinning = false;
+
+        function drawWheel() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (activeSlices.length === 0) { ctx.fillStyle = "#fff"; ctx.font = "bold 20px Segoe UI"; ctx.textAlign = "center"; ctx.fillText("Tüm dilimler tamamlandı!", radius, radius); return; }
+            const arcSize = (2 * Math.PI) / activeSlices.length;
+            for (let i = 0; i < activeSlices.length; i++) {
+                const angle = currentAngle + i * arcSize;
+                ctx.beginPath(); ctx.moveTo(radius, radius); ctx.arc(radius, radius, radius - 10, angle, angle + arcSize);
+                ctx.fillStyle = activeSlices[i].color; ctx.fill(); ctx.lineWidth = 2; ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.stroke();
+                ctx.save(); ctx.translate(radius, radius); ctx.rotate(angle + arcSize / 2);
+                ctx.textAlign = "right"; ctx.fillStyle = "#ffffff"; ctx.font = "bold 13px Segoe UI"; ctx.shadowColor = "rgba(0, 0, 0, 0.6)"; ctx.shadowBlur = 4;
+                ctx.fillText(`${activeSlices[i].name} (${activeSlices[i].points}P)`, radius - 25, 5); ctx.restore();
+            }
+        }
+
+        function spin() {
+            if (isSpinning || activeSlices.length === 0) return;
+            isSpinning = true; const spinDuration = 5000; const startAngle = currentAngle;
+            const totalRotation = (5 + Math.random() * 5) * 2 * Math.PI; const startTime = performance.now(); let lastTick = currentAngle;
+
+            function animateSpin(currentTime) {
+                const progress = Math.min((currentTime - startTime) / spinDuration, 1);
+                currentAngle = startAngle + (1 - Math.pow(1 - progress, 4)) * totalRotation; drawWheel();
+                
+                const arcSize = (2 * Math.PI) / activeSlices.length;
+                if (Math.floor(currentAngle / arcSize) !== Math.floor(lastTick / arcSize)) { playSound('tick'); lastTick = currentAngle; }
+                
+                if (progress < 1) requestAnimationFrame(animateSpin);
+                else { isSpinning = false; triggerResult((2 * Math.PI - (currentAngle % (2 * Math.PI)) + 1.5 * Math.PI) % (2 * Math.PI)); }
+            }
+            requestAnimationFrame(animateSpin);
+        }
+
+        // --- 2. TREN MACERASI İŞLEMLERİ ---
+        function startTrain() {
+            if (activeSlices.length === 0) return alert("Bütün konular çözüldü!");
+            const train = document.getElementById("trainIcon"); const box = document.getElementById("trainBox"); const btn = document.getElementById("trainBtn");
+            btn.style.display = "none"; box.classList.remove("falling"); box.classList.remove("opening"); train.style.transition = "none"; train.classList.remove("go");
+            
+            setTimeout(() => {
+                train.style.transition = "transform 3.5s cubic-bezier(0.25, 0.1, 0.25, 1)"; train.classList.add("go");
+                setTimeout(() => { box.classList.add("falling"); playSound('drop'); }, 2200);
+            }, 50);
+        }
+
+        // YENİ ANIMASYON: Kutuyu Aç ve Yakınlaştır (Zoom)
+        function openTrainBoxWithAnim() {
+            if (activeSlices.length === 0) return;
+            const box = document.getElementById("trainBox");
+            const screen = document.getElementById("mainGameScreen");
+            const flash = document.getElementById("flashScreen");
+
+            // 1. Ekranı Zoomla
+            screen.classList.add("zoomed");
+            
+            // 2. Zoom bitince kutuyu patlat
+            setTimeout(() => {
+                playSound('boom');
+                box.classList.add("opening"); // Kutu büyüyüp şeffaflaşır (patlar)
+                flash.classList.add("flash"); // Beyaz parlama efekti
+                
+                // 3. Parlama geçtikten sonra soruyu getir
+                setTimeout(() => {
+                    flash.classList.remove("flash");
+                    triggerResult(Math.random() * 2 * Math.PI); // Rastgele Açıdan Soru Seçimi
+                }, 500);
+            }, 1000); // 1 Saniyelik zoom animasyon süresini bekler
+        }
+
+
+        // --- 3. GİZEMLİ KUTU İŞLEMLERİ ---
+        function shakeBox() {
+            if (activeSlices.length === 0) return alert("Bütün konular çözüldü!");
+            const box = document.getElementById("mBox");
+            box.classList.add("shake"); playSound('tick');
+            setTimeout(() => { box.classList.remove("shake"); triggerResult(Math.random() * 2 * Math.PI); }, 600);
+        }
+
+        // --- ORTAK SORU MODALI ---
+        function triggerResult(calculatedAngle) {
+            const arcSize = (2 * Math.PI) / activeSlices.length;
+            selectedSliceIndex = Math.floor(calculatedAngle / arcSize) % activeSlices.length;
+            const selected = activeSlices[selectedSliceIndex];
+            
+            totalScore += selected.points; document.getElementById("totalScore").innerText = totalScore;
+            const taskIndex = Math.floor(Math.random() * selected.tasks.length);
+            const chosenTask = selected.tasks[taskIndex];
+            selected.tasks.splice(taskIndex, 1); // Çıkan soruyu sil (birdaha çıkmasın)
+
+            document.getElementById("modalCategoryTag").innerText = document.getElementById("presetSelect").selectedOptions[0].text;
+            document.getElementById("modalTitle").innerText = selected.name;
+            document.getElementById("modalPoints").innerText = `🎯 Kazanılan: +${selected.points} Puan`;
+            document.getElementById("modalTask").innerText = chosenTask;
+
+            playSound('win'); document.getElementById("resultModal").classList.add("active");
+        }
+
+        // Modal Butonları
+        function removeCurrentSlice() { 
+            if (selectedSliceIndex !== -1) { activeSlices.splice(selectedSliceIndex, 1); selectedSliceIndex = -1; drawWheel(); } 
+            closeModal(); 
+        }
+
+        function closeModal() { 
+            document.getElementById("resultModal").classList.remove("active"); 
+            
+            // YENİ: Ekran Zoomunu Sıfırla (Tren Animasyonundan sonra)
+            const screen = document.getElementById("mainGameScreen");
+            if (screen.classList.contains("zoomed")) {
+                screen.classList.remove("zoomed");
+                document.getElementById("trainBtn").style.display = "block"; 
+                document.getElementById("trainBox").classList.remove("falling");
+                document.getElementById("trainBox").classList.remove("opening");
+            }
+        }
+
+        window.onload = () => { changePreset(); };
+    </script>
+</body>
+</html>
