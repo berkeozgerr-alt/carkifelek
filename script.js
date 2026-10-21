@@ -1,4 +1,4 @@
-// --- SESLER ---
+// --- SES SİSTEMİ ---
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playSound(type) {
@@ -7,7 +7,7 @@ function playSound(type) {
     const gain = audioCtx.createGain();
     osc.connect(gain); 
     gain.connect(audioCtx.destination);
-    
+
     if (type === 'tick') {
         osc.type = 'triangle'; 
         osc.frequency.setValueAtTime(600, audioCtx.currentTime); 
@@ -36,8 +36,7 @@ function playSound(type) {
             o.start(audioCtx.currentTime + i * 0.1); 
             o.stop(audioCtx.currentTime + i * 0.1 + 0.2);
         });
-    } else if (type === 'boom') { 
-        // Yeni Patlama Sesi (Kutu Açılırken)
+    } else if (type === 'boom') {
         osc.type = 'square'; 
         osc.frequency.setValueAtTime(100, audioCtx.currentTime); 
         osc.frequency.exponentialRampToValueAtTime(10, audioCtx.currentTime + 0.8);
@@ -48,39 +47,80 @@ function playSound(type) {
     }
 }
 
-// --- VERİTABANI VE SORU ÜRETİCİ ---
-function generate50Tasks(categoryName, presetType) {
+// --- DİN KÜLTÜRÜ 50 GÖREV ÜRETİCİ ---
+function generate50Tasks(categoryName, customFirstTask) {
     const tasks = [];
-    for (let i = 1; i <= 50; i++) {
-        if (presetType === 'degerler') tasks.push(`[${categoryName} - Görev ${i}]: "${categoryName}" değerini uyguladığın ${i}. somut örneği paylaş.`);
-        else if (presetType === 'fen') tasks.push(`[${categoryName} - Soru ${i}]: "${categoryName}" konusuyla ilgili günlük yaşamdan bir örnek ver.`);
-        else if (presetType === 'mat') tasks.push(`[${categoryName} - Soru ${i}]: "${categoryName}" kullanılarak çözülebilecek ${i}. bir problem uydur.`);
-        else if (presetType === 'turkce') tasks.push(`[${categoryName} - Görev ${i}]: İçinde "${categoryName}" kuralları olan ${i}. yaratıcı cümleni kur.`);
-        else if (presetType === 'sosyal') tasks.push(`[${categoryName} - Soru ${i}]: "${categoryName}" konusunun günümüz dünyasına ${i}. etkisini anlat.`);
-        else if (presetType === 'ingilizce') tasks.push(`[${categoryName} - Task ${i}]: Make a sentence using "${categoryName}" rules.`);
-        else if (presetType === 'sanat') tasks.push(`[${categoryName} - Görev ${i}]: "${categoryName}" dendiğinde aklına gelen sanat eserini anlat.`);
-        else if (presetType === 'kultur') tasks.push(`[${categoryName} - Soru ${i}]: "${categoryName}" alanında duyduğun ilginç bilgiyi paylaş.`);
-        else tasks.push(`[${categoryName} - Görev ${i}]: "${categoryName}" kavramını teknolojiden anlamayan birine nasıl anlatırsın?`);
+    
+    // Eğer biz özel bir görev yazdıysak onu 1. sıraya ekle
+    if (customFirstTask && customFirstTask.trim() !== "") {
+        tasks.push(`[${categoryName} - Görev 1]: ${customFirstTask}`);
+    } else {
+        if (categoryName.includes("Eşitlik") || categoryName.includes("Adalet")) {
+            tasks.push(`[${categoryName} - Görev 1]: Bugün arkadaşlarına veya kardeşlerine eşit miktarda yemek/ikram dağıt ve adil davran.`);
+        } else if (categoryName.includes("Yardımseverlik") || categoryName.includes("Sadaka")) {
+            tasks.push(`[${categoryName} - Görev 1]: Bugün bir arkadaşına yardıma ihtiyacı olduğu bir konuda destek ol veya bir hayır yap.`);
+        } else if (categoryName.includes("Dürüstlük")) {
+            tasks.push(`[${categoryName} - Görev 1]: Bugün gün boyunca ne olursa olsun dürüst olmaya ve doğruyu söylemeye özen göster.`);
+        } else {
+            tasks.push(`[${categoryName} - Görev 1]: "${categoryName}" bilinciyle bugün çevrendeki insanlara faydalı bir adım at.`);
+        }
     }
+
+    // Geri kalan 49 soruyu şablonlardan rastgele seçerek tamamla
+    const actionTemplates = [
+        `Bugün sınıfta veya evde "${categoryName}" ilkesini uyguladığın somut bir davranışı arkadaşlarınla paylaş.`,
+        `Peygamberimizin "${categoryName}" ile ilgili bir hadis-i şerifini öğrenip bir arkadaşına anlat.`,
+        `Bugün gün boyunca insanlara güler yüz göstererek sadaka sevabı kazan.`,
+        `Ailenden veya arkadaşlarından biriyle "${categoryName}" üzerine kısa bir sohbet et.`,
+        `Bugün çevrendeki bir insanın yükünü hafifletecek somut bir kolaylık sağla.`,
+        `Peygamber Efendimizin hayatından "${categoryName}" konusuna örnek teşkil eden bir olayı araştır.`,
+        `Bugün bir insana veya hayvana merhametle muamele ederek ne hissettiğini yaz.`,
+        `Sofraya oturmadan ve kalktıktan sonra ellerini yıkayıp şükretmeyi unutma.`,
+        `Bugün bir arkadaşına güzel bir söz söyleyerek gönlünü al.`,
+        `Çevrendeki ve doğadaki nimetlere dikkat ederek bugün israftan kaçın.`,
+        `İki arkadaşın arasında herhangi bir anlaşmazlık olursa adil ve eşit bir hakem ol.`,
+        `Bugün kul hakkına girmemek için sıraya girerken ve konuşurken hakk gözettiğine emin ol.`
+    ];
+
+    while (tasks.length < 50) {
+        const idx = tasks.length + 1;
+        const template = actionTemplates[(idx - 2) % actionTemplates.length];
+        tasks.push(`[${categoryName} - Görev ${idx}]: ${template}`);
+    }
+
     return tasks;
 }
 
-const rawPresets = {
-    degerler: [{ name: "Adalet", points: 10 }, { name: "Sabır", points: 5 }, { name: "Dürüstlük", points: 15 }, { name: "Yardımseverlik", points: 10 }, { name: "Saygı", points: 5 }, { name: "Sevgi", points: 10 }, { name: "Sorumluluk", points: 20 }, { name: "Hoşgörü", points: 5 }, { name: "Vatanseverlik", points: 15 }, { name: "Alçakgönüllülük", points: 10 }, { name: "Cömertlik", points: 10 }, { name: "Merhamet", points: 15 }, { name: "Güven", points: 5 }, { name: "Empati", points: 10 }, { name: "Çalışkanlık", points: 15 }, { name: "Vefa", points: 10 }, { name: "Sadakat", points: 10 }, { name: "Edep", points: 20 }],
-    turkce: [{ name: "Fiilimsiler", points: 15 }, { name: "Cümle Ögeleri", points: 20 }, { name: "Noktalama", points: 10 }, { name: "Yazım Kuralları", points: 10 }, { name: "Paragraf", points: 5 }, { name: "Anlam", points: 5 }, { name: "Atasözleri", points: 10 }, { name: "Deyimler", points: 10 }, { name: "Ses Olayları", points: 15 }, { name: "İsimler", points: 5 }, { name: "Sıfatlar", points: 10 }, { name: "Zamirler", points: 10 }, { name: "Zarflar", points: 15 }, { name: "Edat & Bağlaç", points: 10 }, { name: "Şiir", points: 20 }, { name: "Sanatlar", points: 15 }],
-    mat: [{ name: "Çarpanlar", points: 15 }, { name: "Üslü İfadeler", points: 10 }, { name: "Kareköklü", points: 15 }, { name: "Veri Analizi", points: 5 }, { name: "Olasılık", points: 10 }, { name: "Cebirsel", points: 20 }, { name: "Denklemler", points: 15 }, { name: "Eşitsizlikler", points: 10 }, { name: "Üçgenler", points: 15 }, { name: "Benzerlik", points: 10 }, { name: "Dönüşüm", points: 5 }, { name: "Cisimler", points: 15 }, { name: "Orantı", points: 5 }, { name: "Yüzdeler", points: 10 }, { name: "Rasyonel", points: 10 }, { name: "Tam Sayılar", points: 5 }],
-    fen: [{ name: "Hücre", points: 10 }, { name: "Kuvvet", points: 15 }, { name: "Madde", points: 5 }, { name: "Işık & Ses", points: 10 }, { name: "DNA", points: 20 }, { name: "Periyodik", points: 15 }, { name: "Makineler", points: 10 }, { name: "Elektrik", points: 10 }, { name: "Asit/Baz", points: 15 }, { name: "Sistemler", points: 5 }, { name: "Ekosistem", points: 10 }, { name: "Basınç", points: 15 }, { name: "Isı", points: 10 }, { name: "Güneş Sis.", points: 5 }, { name: "Atom", points: 10 }],
-    sosyal: [{ name: "İlk Türkler", points: 10 }, { name: "Osmanlı", points: 15 }, { name: "İnkılap", points: 20 }, { name: "İklimler", points: 5 }, { name: "Yeryüzü", points: 10 }, { name: "Nüfus", points: 5 }, { name: "Yönetim", points: 10 }, { name: "İnsan Hakları", points: 15 }, { name: "Sorunlar", points: 20 }, { name: "Ekonomi", points: 10 }, { name: "Demokrasi", points: 15 }, { name: "Milli Müc.", points: 20 }, { name: "Afetler", points: 5 }, { name: "Harita", points: 10 }],
-    ingilizce: [{ name: "Present Simple", points: 10 }, { name: "Continuous", points: 15 }, { name: "Past Tense", points: 20 }, { name: "Future", points: 10 }, { name: "Modals", points: 15 }, { name: "Pronouns", points: 5 }, { name: "Adjectives", points: 10 }, { name: "Adverbs", points: 10 }, { name: "Vocabulary", points: 15 }, { name: "Speaking", points: 20 }, { name: "Hobbies", points: 5 }, { name: "Animals", points: 10 }],
-    bilisim: [{ name: "Algoritma", points: 15 }, { name: "Yapay Zeka", points: 20 }, { name: "Siber Güvenlik", points: 15 }, { name: "Donanım", points: 5 }, { name: "Yazılım", points: 10 }, { name: "Ağ", points: 10 }, { name: "Veri Tabanı", points: 15 }, { name: "Robotik", points: 20 }, { name: "3D", points: 10 }, { name: "Web", points: 10 }, { name: "Bulut", points: 10 }, { name: "Python", points: 15 }],
-    sanat: [{ name: "Renkler", points: 10 }, { name: "Perspektif", points: 15 }, { name: "Rönesans", points: 20 }, { name: "Notalar", points: 5 }, { name: "Klasik Müzik", points: 15 }, { name: "Mimari", points: 15 }, { name: "Fotoğraf", points: 10 }, { name: "Bestekarlar", points: 15 }, { name: "Sinema", points: 10 }],
-    kultur: [{ name: "Uzay", points: 15 }, { name: "Bilim İnsanları", points: 20 }, { name: "İcatlar", points: 10 }, { name: "Keşifler", points: 15 }, { name: "Mitoloji", points: 20 }, { name: "Harikalar", points: 15 }, { name: "Felsefe", points: 20 }, { name: "Nobel", points: 15 }, { name: "Spor", points: 10 }]
+// DIN KÜLTÜRÜ VERİ TABANI
+let rawPresets = {
+    din_kulturu: [
+        { name: "Eşitlik & Adalet", points: 15, customTask: "Bugün arkadaşlarına veya kardeşlerine eşit miktarda yemek/ikram dağıt." },
+        { name: "Dürüstlük & Doğruluk", points: 10, customTask: "Bugün ne olursa olsun yalan söylemeyeceğine ve dürüst kalacağına söz ver." },
+        { name: "Yardımseverlik", points: 15, customTask: "Bugün yardıma ihtiyacı olan bir arkadaşına veya büyüğüne yardım et." },
+        { name: "Anne-Babaya Saygı", points: 20, customTask: "Bugün annene veya babana güler yüzle sarılıp yardıma ihtiyacı olup olmadığını sor." },
+        { name: "Merhamet & Şefkat", points: 10, customTask: "Bugün sokaktaki bir hayvana veya bir cana merhametle yaklaş, su/yemek ver." },
+        { name: "Temizlik (Taharet)", points: 10, customTask: "Bugün çevreni, sıranı ve odanı tertemiz tut, temizliğin imandan geldiğini hatırla." },
+        { name: "Sabır & Şükür", points: 15, customTask: "Bugün karşılaştığın zor bir durumda öfkelenmeyip sabret ve sahip olduklarına şükret." },
+        { name: "Hoşgörü & Müsamaha", points: 10, customTask: "Bugün sana yapılan küçük bir hatayı hoşgörüyle karşıla ve affedici ol." },
+        { name: "Sorumluluk & Emanet", points: 15, customTask: "Sana verilen bir eşyayı veya görevi en güzel şekilde koruyup yerine getir." },
+        { name: "Kardeşlik & Birlik", points: 20, customTask: "Bugün küs olduğun veya az konuştuğun bir arkadaşına selam verip barış." },
+        { name: "Cömertlik & Paylaşma", points: 15, customTask: "Bugün sahip olduğun imkanlardan veya eşyalardan birini arkadaşınla paylaş." },
+        { name: "Kul Hakkı", points: 20, customTask: "Bugün kimsenin sırasını gasp etme, arkasından konuşma ve kul hakkından kaçın." }
+    ],
+    din_ibadet: [
+        { name: "Namaz & İbadet", points: 20, customTask: "Bugün ibadetlerin insan ruhuna kazandırdığı huzuru düşün ve bir ibadet duasını oku." },
+        { name: "Dua Etmek", points: 15, customTask: "Bugün hem kendin hem de tüm sevdiklerin ve mazlumlar için içtenlikle dua et." },
+        { name: "Kuran-ı Kerim", points: 20, customTask: "Kuran-ı Kerim'den Türkçe mealiyle bir ayet okuyup anlamı üzerine düşün." },
+        { name: "Güvenilirlik (El-Emin)", points: 15, customTask: "Peygamberimizin El-Emin sıfatını örnek alarak bugün sözünde dur." },
+        { name: "Selamlaşmak", points: 10, customTask: "Bugün karşılaştığın en az 5 kişiye içtenlikle 'Selamün Aleyküm' de ve selam ver." },
+        { name: "İsraftan Kaçınmak", points: 15, customTask: "Bugün tabağındaki yemeği bitir, suyu boşa akıtma ve israftan kaçın." }
+    ]
 };
 
 let activeSlices = []; 
 let totalScore = 0; 
 let selectedSliceIndex = -1;
-const sliceColors = ["#ef4444", "#f97316", "#f59e0b", "#eab308", "#84cc16", "#22c55e", "#10b981", "#14b8a6", "#06b6d4", "#0ea5e9", "#3b82f6", "#6366f1", "#8b5cf6", "#a855f7", "#d946ef", "#ec4899", "#f43f5e", "#64748b"];
+const sliceColors = ["#ef4444", "#f97316", "#f59e0b", "#eab308", "#84cc16", "#22c55e", "#10b981", "#14b8a6", "#06b6d4", "#0ea5e9", "#3b82f6", "#6366f1", "#8b5cf6", "#a855f7", "#d946ef", "#ec4899"];
 
 function changePreset() {
     const presetKey = document.getElementById("presetSelect").value;
@@ -88,9 +128,37 @@ function changePreset() {
         name: item.name, 
         points: item.points, 
         color: sliceColors[idx % sliceColors.length], 
-        tasks: generate50Tasks(item.name, presetKey)
+        tasks: generate50Tasks(item.name, item.customTask)
     }));
     drawWheel();
+}
+
+// --- KULLANICI YENİ KONU VE GÖREV EKLEME ---
+function addNewCustomTopic() {
+    const topicName = document.getElementById("newTopicName").value.trim();
+    const topicPoints = parseInt(document.getElementById("newTopicPoints").value) || 10;
+    const customTask = document.getElementById("newTopicCustomTask").value.trim();
+
+    if (!topicName) {
+        alert("Lütfen bir konu adı girin! (Örn: Eşitlik)");
+        return;
+    }
+
+    const newSlice = {
+        name: topicName,
+        points: topicPoints,
+        color: sliceColors[activeSlices.length % sliceColors.length],
+        tasks: generate50Tasks(topicName, customTask)
+    };
+
+    activeSlices.push(newSlice);
+    
+    // Eklendikten sonra kutuları temizle
+    document.getElementById("newTopicName").value = "";
+    document.getElementById("newTopicCustomTask").value = "";
+
+    drawWheel();
+    alert(`"${topicName}" konusu ve 50 özel görevi başarıyla çarka eklendi! 🎉`);
 }
 
 // --- SOL MENÜ GEÇİŞ ---
@@ -114,7 +182,7 @@ function drawWheel() {
         ctx.fillStyle = "#fff"; 
         ctx.font = "bold 20px Segoe UI"; 
         ctx.textAlign = "center"; 
-        ctx.fillText("Tüm dilimler tamamlandı!", radius, radius); 
+        ctx.fillText("Tüm konular tamamlandı!", radius, radius); 
         return; 
     }
     const arcSize = (2 * Math.PI) / activeSlices.length;
@@ -195,28 +263,25 @@ function startTrain() {
     }, 50);
 }
 
-// YENİ ANIMASYON: Kutuyu Aç ve Yakınlaştır (Zoom)
+// TREN KUTUSU AÇILMA ANİMASYONU (ZOOM + FLASH)
 function openTrainBoxWithAnim() {
     if (activeSlices.length === 0) return;
     const box = document.getElementById("trainBox");
     const screen = document.getElementById("mainGameScreen");
     const flash = document.getElementById("flashScreen");
 
-    // 1. Ekranı Zoomla
     screen.classList.add("zoomed");
     
-    // 2. Zoom bitince kutuyu patlat
     setTimeout(() => {
         playSound('boom');
-        box.classList.add("opening"); // Kutu büyüyüp şeffaflaşır (patlar)
-        flash.classList.add("flash"); // Beyaz parlama efekti
+        box.classList.add("opening");
+        flash.classList.add("flash");
         
-        // 3. Parlama geçtikten sonra soruyu getir
         setTimeout(() => {
             flash.classList.remove("flash");
-            triggerResult(Math.random() * 2 * Math.PI); // Rastgele Açıdan Soru Seçimi
+            triggerResult(Math.random() * 2 * Math.PI);
         }, 500);
-    }, 1000); // 1 Saniyelik zoom animasyon süresini bekler
+    }, 1000);
 }
 
 // --- 3. GİZEMLİ KUTU İŞLEMLERİ ---
@@ -225,14 +290,13 @@ function shakeBox() {
     const box = document.getElementById("mBox");
     box.classList.add("shake"); 
     playSound('tick');
-    
     setTimeout(() => { 
         box.classList.remove("shake"); 
         triggerResult(Math.random() * 2 * Math.PI); 
     }, 600);
 }
 
-// --- ORTAK SORU MODALI ---
+// --- ORTAK SORU/GÖREV MODALI ---
 function triggerResult(calculatedAngle) {
     const arcSize = (2 * Math.PI) / activeSlices.length;
     selectedSliceIndex = Math.floor(calculatedAngle / arcSize) % activeSlices.length;
@@ -241,9 +305,12 @@ function triggerResult(calculatedAngle) {
     totalScore += selected.points; 
     document.getElementById("totalScore").innerText = totalScore;
     
+    // 50 sorudan rastgele birini seç
     const taskIndex = Math.floor(Math.random() * selected.tasks.length);
     const chosenTask = selected.tasks[taskIndex];
-    selected.tasks.splice(taskIndex, 1); // Çıkan soruyu sil (bir daha çıkmasın)
+    
+    // Çıkan soruyu listeden sil ki bir daha çıkmasın
+    selected.tasks.splice(taskIndex, 1);
 
     document.getElementById("modalCategoryTag").innerText = document.getElementById("presetSelect").selectedOptions[0].text;
     document.getElementById("modalTitle").innerText = selected.name;
@@ -254,7 +321,6 @@ function triggerResult(calculatedAngle) {
     document.getElementById("resultModal").classList.add("active");
 }
 
-// Modal Butonları
 function removeCurrentSlice() { 
     if (selectedSliceIndex !== -1) { 
         activeSlices.splice(selectedSliceIndex, 1); 
@@ -266,8 +332,6 @@ function removeCurrentSlice() {
 
 function closeModal() { 
     document.getElementById("resultModal").classList.remove("active"); 
-    
-    // Ekran Zoomunu Sıfırla (Tren Animasyonundan sonra)
     const screen = document.getElementById("mainGameScreen");
     if (screen && screen.classList.contains("zoomed")) {
         screen.classList.remove("zoomed");
@@ -277,7 +341,7 @@ function closeModal() {
     }
 }
 
-// Sayfa yüklendiğinde varsayılan kategoriyi başlat
+// Sayfa yüklendiğinde varsayılan ayarları yükle
 window.onload = () => { 
     changePreset(); 
 };
